@@ -19,6 +19,11 @@ require_relative 'support/versions'
 RSpec.configure do |config|
   config.color = true
 
+  config.before(:each) do
+    #RubyLint::Definition::RubyObject.cache(path, self)
+    RubyLint::Definition::RubyObject.clear_cache
+  end
+
   config.expect_with :rspec do |c|
     c.syntax = [:should, :expect]
   end

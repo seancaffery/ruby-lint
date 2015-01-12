@@ -24,6 +24,7 @@ describe RubyLint::Definition::ConstantProxy do
 
       @source.define_constant('Foo').define_constant('VERSION')
 
+      puts @proxy.inspect
       @proxy.name.should == 'Foo'
       @proxy.type.should == :const
 

@@ -40,7 +40,10 @@ module RubyLint
     #
     # @param [Array] args
     #
+    require 'ruby-prof'
     def run(args)
+      #RubyProf.measure_mode = RubyProf::WALL_TIME
+      #RubyProf.start
       start_time    = Time.now.to_f
       files         = extract_files(args)
       configuration = load_configuration
@@ -51,6 +54,12 @@ module RubyLint
       output    = runner.analyze(files)
       exec_time = Time.now.to_f - start_time
       status    = 0
+
+      #results = RubyProf.stop
+      #profile_location = 'prof.html'
+      #File.open profile_location, 'w' do |file|
+        #RubyProf::GraphHtmlPrinter.new(results).print(file)
+      #end
 
       unless output.empty?
         status = 1

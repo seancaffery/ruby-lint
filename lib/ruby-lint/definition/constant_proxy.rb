@@ -71,6 +71,8 @@ module RubyLint
         found = lookup_constant
         root  = root_constant
 
+        #require 'pry'
+        #binding.pry
         if !found and use_registry?(root)
           registry.apply(root, proxy_source)
 

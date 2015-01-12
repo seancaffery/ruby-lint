@@ -235,6 +235,14 @@ module RubyLint
 
         definitions[type][name] = value
 
+        #puts 'hai'
+        #puts name
+        #RubyLint::Definition::RubyObject.add_to_cache(name, value)
+        #puts @things.inspect
+        @stuff ||= {}
+        #@stuff[name.hash] = nil
+        @stuff.delete(name.hash)
+
         if update_parents.include?(type)
           update_parent_definitions(type, name, value)
         end
@@ -281,6 +289,7 @@ module RubyLint
         # Look up the definition in the parent scope(s) (if any are set). This
         # takes the parents themselves also into account.
         elsif lookup_parent?(type) and lookup_parent
+          #puts 'a'
           parents.each do |parent|
             # If we've already processed the parent we'll skip it.
             next if exclude.include?(parent)
@@ -306,7 +315,47 @@ module RubyLint
       # @param [String|Array<String>] path
       # @return [RubyLint::Definition::RubyObject]
       #
-      def lookup_constant_path(path)
+
+      require 'ostruct'
+      E = Struct.new(:e) do
+        def name
+
+        end
+        def type
+
+        end
+        def lookup *args
+
+        end
+        def has_definition? *args
+        end
+      end
+
+      def self.clear_cache
+        @things = nil
+      end
+
+      def self.add_to_cache(path, obj)
+        return if path == 'self'
+        @things ||= {}
+        #puts [path, obj].inspect
+        @things[path.hash] = obj
+        #puts @things.inspect
+      end
+      def self.cache_lookup(path, obj)
+        @things ||= {}
+        #puts path.inspect
+
+        @things[path.hash] ||=
+          begin
+            obj.do_thing(path) || E.new
+          end
+
+        #raise path.inspect if @things[path.hash].is_a?(E)
+        @things[path.hash].is_a?(E) ? nil : @things[path.hash]
+      end
+
+      def do_thing(path)
         constant = self
         path     = path.split(PATH_SEPARATOR) if path.is_a?(String)
 
@@ -316,9 +365,31 @@ module RubyLint
           found ? constant = found : return
         end
 
-        return constant
+        constant
       end
 
+      def l(path)
+        @stuff ||= {}
+        if @stuff.key?(path.hash) #[path.hash] == :not_found
+          #puts path.inspect
+          return
+        end
+
+        found = do_thing(path)
+        if !found
+          @stuff[path.hash] = :not_found
+          nil
+        else
+          found
+        end
+      end
+
+      def lookup_constant_path(path)
+        l(path)
+        #puts caller.inspect
+        #do_thing(path)
+        #RubyLint::Definition::RubyObject.cache_lookup(path, self)
+      end
       ##
       # Mimics a method call by executing the method for the given name. This
       # method should be defined in the current definition.
@@ -425,7 +496,7 @@ module RubyLint
       # @return [TrueClass|FalseClass]
       #
       def defines?(type, name)
-        type, name = prepare_lookup(type, name)
+        #type, name = prepare_lookup(type, name)
 
         return definitions.key?(type) && definitions[type].key?(name)
       end
@@ -483,7 +554,7 @@ module RubyLint
         return unless source.definitions.key?(source_type)
 
         source.list(source_type).each do |definition|
-          unless defines?(target_type, definition.name)
+          unless defines?(target_type.to_sym, definition.name.to_s)
             add(target_type, definition.name, definition)
           end
         end
@@ -693,13 +764,14 @@ module RubyLint
       # @param [Array] exclude
       # @return [RubyLint::Definition::RubyObject]
       #
-      def determine_parent(parent, type, name, exclude = [])
+      def determine_parent(parent, type, name, exclude = Set.new)
         if parent.type == type and parent.name == name
           parent_definition = parent
         else
-          exclude = exclude + [self] unless exclude.include?(self)
-
+          #exclude = exclude + [self] unless exclude.include?(self)
+          exclude << self unless exclude.include?(self)
           parent_definition = parent.lookup(type, name, true, exclude)
+          #parent_definition = parent.lookup(type, name, true, exclude.add(self))
         end
 
         return parent_definition
